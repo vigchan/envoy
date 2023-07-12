@@ -38,7 +38,8 @@ def binary_path(bazel_bin, target):
 
 
 def build_binary_with_debug_info(target):
-    targets = [target, target + ".dwp"]
+    # targets = [target, target + ".dwp"]
+    targets = [target]
     subprocess.check_call(["bazel", *BAZEL_STARTUP_OPTIONS, "build", "-c", "dbg"] + BAZEL_OPTIONS
                           + targets)
 

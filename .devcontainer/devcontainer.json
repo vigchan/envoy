@@ -2,7 +2,7 @@
   "name": "Envoy Dev",
   "dockerFile": "Dockerfile",
   "runArgs": [
-    "--user=vscode",
+    "--user=coder",
     "--cap-add=SYS_PTRACE",
     "--cap-add=NET_RAW",
     "--cap-add=NET_ADMIN",
@@ -19,7 +19,7 @@
   "settings": {
     "terminal.integrated.shell.linux": "/bin/bash",
     "bazel.buildifierFixOnFormat": true,
-    "clangd.path": "/opt/llvm/bin/clangd",
+    "clangd.path": "/home/coder/devtrees/clang-llvm-14/bin/clangd",
     "python.pythonPath": "/usr/bin/python3",
     "python.formatting.provider": "yapf",
     "python.formatting.yapfArgs": [
@@ -34,8 +34,8 @@
       "**/bazel-*/**": true
     }
   },
-  "remoteUser": "vscode",
-  "containerUser": "vscode",
+  "remoteUser": "coder",
+  "containerUser": "coder",
   "postCreateCommand": ".devcontainer/setup.sh",
   "extensions": [
     "github.vscode-pull-request-github",
