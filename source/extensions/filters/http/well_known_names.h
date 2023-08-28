@@ -96,6 +96,8 @@ public:
   const std::string ExternalProcessing = "envoy.filters.http.ext_proc";
   // Set metadata filter
   const std::string SetMetadata = "envoy.filters.http.set_metadata";
+
+  const std::string Golang = "envoy.filters.http.golang";
 };
 
 using HttpFilterNames = ConstSingleton<HttpFilterNameValues>;

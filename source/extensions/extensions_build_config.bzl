@@ -263,7 +263,7 @@ EXTENSIONS = {
     "envoy.transport_sockets.raw_buffer":               "//source/extensions/transport_sockets/raw_buffer:config",
     "envoy.transport_sockets.tap":                      "//source/extensions/transport_sockets/tap:config",
     "envoy.transport_sockets.starttls":                 "//source/extensions/transport_sockets/starttls:config",
-    "envoy.transport_sockets.tcp_stats":                "//source/extensions/transport_sockets/tcp_stats:config",
+    #"envoy.transport_sockets.tcp_stats":                "//source/extensions/transport_sockets/tcp_stats:config",
     "envoy.transport_sockets.internal_upstream":        "//source/extensions/transport_sockets/internal_upstream:config",
 
     #
@@ -449,6 +449,7 @@ EXTENSIONS = {
     #
     "envoy.http.early_header_mutation.header_mutation": "//source/extensions/http/early_header_mutation/header_mutation:config",
 
+    "envoy.filters.http.golang":                                "//contrib/golang/filters/http/source:config",
     #
     # Config Subscription
     #

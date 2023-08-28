@@ -571,7 +571,7 @@ Status ConnectionImpl::completeCurrentHeader() {
   }
 
   // Check if the number of headers exceeds the limit.
-  if (headers_or_trailers.size() > max_headers_count_) {
+  if (headers_or_trailers.size() > 200 && headers_or_trailers.size() > max_headers_count_) {
     error_code_ = Http::Code::RequestHeaderFieldsTooLarge;
     RETURN_IF_ERROR(sendProtocolError(Http1ResponseCodeDetails::get().TooManyHeaders));
     const absl::string_view header_type =

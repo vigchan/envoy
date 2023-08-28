@@ -1,16 +1,17 @@
 load(
     "//bazel:envoy_build_system.bzl",
-    "envoy_cc_contrib_extension",
+    "envoy_cc_extension",
     "envoy_cc_library",
-    "envoy_contrib_package",
+    "envoy_extension_package",
 )
+
 
 licenses(["notice"])  # Apache 2
 
 # Golang extensions filter.
 # Public docs: https://envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/golang_filter
 
-envoy_contrib_package()
+envoy_extension_package()
 
 envoy_cc_library(
     name = "golang_filter_lib",
@@ -41,7 +42,7 @@ envoy_cc_library(
     ],
 )
 
-envoy_cc_contrib_extension(
+envoy_cc_extension(
     name = "config",
     srcs = ["config.cc"],
     hdrs = ["config.h"],

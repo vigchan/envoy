@@ -1618,6 +1618,11 @@ envoy.config_mux.delta_grpc_mux_factory:
   - envoy.config_mux
   security_posture: unknown
   status: stable
+envoy.filters.http.golang:
+  categories:
+  - envoy.filters.http
+  security_posture: requires_trusted_downstream_and_upstream
+  status: alpha
 envoy.config_mux.sotw_grpc_mux_factory:
   categories:
   - envoy.config_mux

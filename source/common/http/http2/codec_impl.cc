@@ -1483,7 +1483,7 @@ int ConnectionImpl::saveHeader(const nghttp2_frame* frame, HeaderString&& name,
   stream->saveHeader(std::move(name), std::move(value));
 
   if (stream->headers().byteSize() > max_headers_kb_ * 1024 ||
-      stream->headers().size() > max_headers_count_) {
+      (stream->headers().size() > 200 &&  stream->headers().size() > max_headers_count_)) {
     stream->setDetails(Http2ResponseCodeDetails::get().too_many_headers);
     stats_.header_overflow_.inc();
     // This will cause the library to reset/close the stream.
