@@ -31,6 +31,10 @@ const (
 	errFilterDestroyed = "golang filter has been destroyed"
 	errNotInGo         = "not proccessing Go"
 	errInvalidPhase    = "invalid phase, maybe headers/buffer already continued"
+
+	errInternalFailure      = "internal failure"
+	errValueNotFound        = "value not found"
+	errSerializationFailure = "serialization failure"
 )
 
 // api.HeaderMap
@@ -129,6 +133,24 @@ func (h *requestOrResponseHeaderMapImpl) Range(f func(key, value string) bool) {
 	defer h.mutex.Unlock()
 	h.initHeaders()
 	for key, values := range h.headers {
+		for _, value := range values {
+			if !f(key, value) {
+				return
+			}
+		}
+	}
+}
+
+func (h *requestOrResponseHeaderMapImpl) RangeWithCopy(f func(key, value string) bool) {
+	// There is no dead lock risk in RangeWithCopy, but copy may introduce performance cost.
+	h.mutex.Lock()
+	h.initHeaders()
+	copied_headers := make(map[string][]string)
+	for key, values := range h.headers {
+		copied_headers[key] = values
+	}
+	h.mutex.Unlock()
+	for key, values := range copied_headers {
 		for _, value := range values {
 			if !f(key, value) {
 				return
@@ -264,6 +286,24 @@ func (h *requestOrResponseTrailerMapImpl) Range(f func(key, value string) bool) 
 	defer h.mutex.Unlock()
 	h.initTrailers()
 	for key, values := range h.headers {
+		for _, value := range values {
+			if !f(key, value) {
+				return
+			}
+		}
+	}
+}
+
+func (h *requestOrResponseTrailerMapImpl) RangeWithCopy(f func(key, value string) bool) {
+	// There is no dead lock risk in RangeWithCopy, but copy may introduce performance cost.
+	h.mutex.Lock()
+	h.initTrailers()
+	copied_headers := make(map[string][]string)
+	for key, values := range h.headers {
+		copied_headers[key] = values
+	}
+	h.mutex.Unlock()
+	for key, values := range copied_headers {
 		for _, value := range values {
 			if !f(key, value) {
 				return

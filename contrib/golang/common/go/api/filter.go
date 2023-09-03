@@ -19,6 +19,23 @@ package api
 
 import "google.golang.org/protobuf/types/known/anypb"
 
+type (
+	// PassThroughStreamEncoderFilter provides the no-op implementation of the StreamEncoderFilter interface.
+	PassThroughStreamEncoderFilter struct{}
+	// PassThroughStreamDecoderFilter provides the no-op implementation of the StreamDecoderFilter interface.
+	PassThroughStreamDecoderFilter struct{}
+	// PassThroughStreamFilter provides the no-op implementation of the StreamFilter interface.
+	PassThroughStreamFilter struct {
+		PassThroughStreamDecoderFilter
+		PassThroughStreamEncoderFilter
+	}
+
+	// EmptyDownstreamFilter provides the no-op implementation of the DownstreamFilter interface
+	EmptyDownstreamFilter struct{}
+	// EmptyUpstreamFilter provides the no-op implementation of the UpstreamFilter interface
+	EmptyUpstreamFilter struct{}
+)
+
 // request
 type StreamDecoderFilter interface {
 	DecodeHeaders(RequestHeaderMap, bool) StatusType
@@ -26,22 +43,16 @@ type StreamDecoderFilter interface {
 	DecodeTrailers(RequestTrailerMap) StatusType
 }
 
-type StreamFilterConfigParser interface {
-	Parse(any *anypb.Any) (interface{}, error)
-	Merge(parentConfig interface{}, childConfig interface{}) interface{}
+func (*PassThroughStreamDecoderFilter) DecodeHeaders(RequestHeaderMap, bool) StatusType {
+	return Continue
 }
 
-type StreamFilterConfigFactory func(config interface{}) StreamFilterFactory
-type StreamFilterFactory func(callbacks FilterCallbackHandler) StreamFilter
+func (*PassThroughStreamDecoderFilter) DecodeData(BufferInstance, bool) StatusType {
+	return Continue
+}
 
-type StreamFilter interface {
-	// http request
-	StreamDecoderFilter
-	// response stream
-	StreamEncoderFilter
-	// destroy filter
-	OnDestroy(DestroyReason)
-	// TODO add more for stream complete and log phase
+func (*PassThroughStreamDecoderFilter) DecodeTrailers(RequestTrailerMap) StatusType {
+	return Continue
 }
 
 // response
@@ -50,6 +61,44 @@ type StreamEncoderFilter interface {
 	EncodeData(BufferInstance, bool) StatusType
 	EncodeTrailers(ResponseTrailerMap) StatusType
 }
+
+func (*PassThroughStreamEncoderFilter) EncodeHeaders(ResponseHeaderMap, bool) StatusType {
+	return Continue
+}
+
+func (*PassThroughStreamEncoderFilter) EncodeData(BufferInstance, bool) StatusType {
+	return Continue
+}
+
+func (*PassThroughStreamEncoderFilter) EncodeTrailers(ResponseTrailerMap) StatusType {
+	return Continue
+}
+
+type StreamFilter interface {
+	// http request
+	StreamDecoderFilter
+	// response stream
+	StreamEncoderFilter
+	// log when the request is finished
+	OnLog()
+	// destroy filter
+	OnDestroy(DestroyReason)
+	// TODO add more for stream complete
+}
+
+func (*PassThroughStreamFilter) OnLog() {
+}
+
+func (*PassThroughStreamFilter) OnDestroy(DestroyReason) {
+}
+
+type StreamFilterConfigParser interface {
+	Parse(any *anypb.Any, callbacks ConfigCallbackHandler) (interface{}, error)
+	Merge(parentConfig interface{}, childConfig interface{}) interface{}
+}
+
+type StreamFilterConfigFactory func(config interface{}) StreamFilterFactory
+type StreamFilterFactory func(callbacks FilterCallbackHandler) StreamFilter
 
 // stream info
 // refer https://github.com/envoyproxy/envoy/blob/main/envoy/stream_info/stream_info.h
@@ -70,12 +119,19 @@ type StreamInfo interface {
 	DownstreamLocalAddress() string
 	// DownstreamRemoteAddress return the downstream remote address.
 	DownstreamRemoteAddress() string
-	// UpstreamHostAddress return the upstream host address.
-	UpstreamHostAddress() (string, bool)
+	// UpstreamLocalAddress return the upstream local address.
+	UpstreamLocalAddress() (string, bool)
+	// UpstreamRemoteAddress return the upstream remote address.
+	UpstreamRemoteAddress() (string, bool)
 	// UpstreamClusterName return the upstream host cluster.
 	UpstreamClusterName() (string, bool)
 	// FilterState return the filter state interface.
 	FilterState() FilterState
+	// VirtualClusterName returns the name of the virtual cluster which got matched
+	VirtualClusterName() (string, bool)
+
+	// Some fields in stream info can be fetched via GetProperty
+	// For example, startTime() is equal to GetProperty("request.time")
 }
 
 type StreamFilterCallbacks interface {
@@ -91,6 +147,13 @@ type FilterCallbacks interface {
 	RecoverPanic()
 	Log(level LogType, msg string)
 	LogLevel() LogType
+	// GetProperty fetch Envoy attribute and return the value as a string.
+	// The list of attributes can be found in https://www.envoyproxy.io/docs/envoy/latest/intro/arch_overview/advanced/attributes.
+	// If the fetch succeeded, a string will be returned.
+	// If the value is a timestamp, it is returned as a timestamp string like "2023-07-31T07:21:40.695646+00:00".
+	// If the fetch failed (including the value is not found), an error will be returned.
+	// Currently, fetching requests/response attributes are mostly unsupported.
+	GetProperty(key string) (string, error)
 	// TODO add more for filter callbacks
 }
 
@@ -114,6 +177,21 @@ type DownstreamFilter interface {
 	OnWrite(buffer []byte, endOfStream bool) FilterStatus
 }
 
+func (*EmptyDownstreamFilter) OnNewConnection() FilterStatus {
+	return NetworkFilterContinue
+}
+
+func (*EmptyDownstreamFilter) OnData(buffer []byte, endOfStream bool) FilterStatus {
+	return NetworkFilterContinue
+}
+
+func (*EmptyDownstreamFilter) OnEvent(event ConnectionEvent) {
+}
+
+func (*EmptyDownstreamFilter) OnWrite(buffer []byte, endOfStream bool) FilterStatus {
+	return NetworkFilterContinue
+}
+
 type UpstreamFilter interface {
 	// Called when a connection is available to process a request/response.
 	OnPoolReady(cb ConnectionCallback)
@@ -125,11 +203,22 @@ type UpstreamFilter interface {
 	OnEvent(event ConnectionEvent)
 }
 
+func (*EmptyUpstreamFilter) OnPoolReady(cb ConnectionCallback) {
+}
+
+func (*EmptyUpstreamFilter) OnPoolFailure(poolFailureReason PoolFailureReason, transportFailureReason string) {
+}
+
+func (*EmptyUpstreamFilter) OnData(buffer []byte, endOfStream bool) FilterStatus {
+	return NetworkFilterContinue
+}
+
+func (*EmptyUpstreamFilter) OnEvent(event ConnectionEvent) {
+}
+
 type ConnectionCallback interface {
-	// Return the local address of the connection.
-	LocalAddr() string
-	// Return the remote address of the connection.
-	RemoteAddr() string
+	// StreamInfo returns the stream info of the connection
+	StreamInfo() StreamInfo
 	// Write data to the connection.
 	Write(buffer []byte, endStream bool)
 	// Close the connection.
@@ -163,4 +252,40 @@ const (
 type FilterState interface {
 	SetString(key, value string, stateType StateType, lifeSpan LifeSpan, streamSharing StreamSharing)
 	GetString(key string) string
+}
+
+type MetricType uint32
+
+const (
+	Counter   MetricType = 0
+	Gauge     MetricType = 1
+	Histogram MetricType = 2
+)
+
+type ConfigCallbacks interface {
+	// Define a metric, for different MetricType, name must be different,
+	// for same MetricType, the same name will share a metric.
+	DefineCounterMetric(name string) CounterMetric
+	DefineGaugeMetric(name string) GaugeMetric
+	// TODO Histogram
+}
+
+type ConfigCallbackHandler interface {
+	ConfigCallbacks
+}
+
+type CounterMetric interface {
+	Increment(offset int64)
+	Get() uint64
+	Record(value uint64)
+}
+
+type GaugeMetric interface {
+	Increment(offset int64)
+	Get() uint64
+	Record(value uint64)
+}
+
+// TODO
+type HistogramMetric interface {
 }
