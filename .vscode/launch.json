@@ -1,0 +1,17 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "gdb //plugins:envoy",
+            "request": "launch",
+            "arguments": "-c envoy.yaml",
+            "type": "gdb",
+            "target": "/home/coder/.cache/bazel/_bazel_coder/103f98c316b9e5f357e6c6dfe6529706/execroot/envoy_filters/bazel-out/aarch64-dbg/bin/plugins/envoy",
+            "debugger_args": [
+                "--directory=/home/coder/.cache/bazel/_bazel_coder/103f98c316b9e5f357e6c6dfe6529706/execroot/envoy_filters"
+            ],
+            "cwd": "${workspaceFolder}",
+            "valuesFormatting": "disabled"
+        }
+    ]
+}

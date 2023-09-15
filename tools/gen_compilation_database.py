@@ -121,9 +121,10 @@ if __name__ == "__main__":
     parser.add_argument('--bazel', default='bazel')
     parser.add_argument(
         'bazel_targets', nargs='*', default=[
-            "//source/...",
-            "//test/...",
-            "//contrib/...",
+            #"//source/...",
+            #"//test/...",
+            #"//contrib/...",
+            "//plugins:envoy"
         ])
     args = parser.parse_args()
     fix_compilation_database(args, generate_compilation_database(args))
